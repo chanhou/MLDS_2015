@@ -63,7 +63,7 @@ typedef struct pattern {
   // int add_your_variables_here;
   
   //  dimension
-  std::vector< std::vector< std::vector <double> > > x_part;
+   std::vector< std::vector <double> >  x_part;
   // std::vector<string> x_part;
 
 } PATTERN;
