@@ -189,9 +189,9 @@ void        init_struct_model(SAMPLE sample, STRUCTMODEL *sm,
      weights that can be learned. Later, the weight vector w will
      contain the learned weights for the model. */
 
-  // 48 phones + 1 transition
+  // 48 phones + 1 dummy + 1 transition
 
-  sm->sizePsi=49; /* replace by appropriate number of features */
+  sm->sizePsi=50; /* replace by appropriate number of features */
 }
 
 CONSTSET    init_struct_constraints(SAMPLE sample, STRUCTMODEL *sm, 
@@ -351,10 +351,9 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
   /* insert code for computing the feature vector for x and y here */
   int nn = 48*69+48*48+1;
 
-  // fvec = (SVECTOR *) malloc( sizeof(SVECTOR) );
-  // fvec->words = (WORD *) malloc( sizeof(WORD)*nn);
   WORD* my_word = (WORD *) malloc( sizeof(WORD)*nn);
 
+  // using label map file to map the chr to index
   map<string,int> mapp_int;  
   ifstream lab_int;
   lab_int.open("../48_idx_chr.map_b");
@@ -362,7 +361,7 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
   while(getline(lab_int,line)){
     istringstream iss(line);
     iss >>temp1 >> temp2 >> forget;
-    mapp_int[ temp1 ] = (temp2+1); // index start from 1
+    mapp_int[ temp1 ] = (temp2+1); // index start from 1 in psi for featurenum
   }
 
   int now;
@@ -371,49 +370,64 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
 
   vector<int> record_appear (49,-1);
   vector<int> record_sparse (49,-1);
-  for(auto &y: examples[0].y.y_part){
+  for(auto &y: y.y_part){
+    // record the label which have appear
     record_sparse[ mapp_int[y] ] = 1;
   }
   for(int ee=0; ee< (int)record_sparse.size(); ++ee){
+    // record the order and position for fixed featurenum
     if( record_sparse[ee] != -1){
       record_appear[ee] = count_p;
       count_p ++;
       count_sparse ++;
     }
   }
+  ///////
+  // for dummy state
+  count_sparse ++; 
+  ///////
 
   // for observation part
-  for (int cc=0; cc< (int) examples[0].x.x_part.size() ; ++cc){ // 474
-    
-    now = mapp_int[examples[0].y.y_part[cc]];
-    for(int ww=0; ww< (int)examples[0].x.x_part[cc].size(); ++ww ){
+  for (int cc=0; cc< (int) x.x_part.size() ; ++cc){ // 474
+    // the feature num
+    now = mapp_int[ y.y_part[cc] ];
+
+    for(int ww=0; ww< (int) x.x_part[cc].size(); ++ww ){
+      // record_appear[now]*69 specify the position of feature num
       my_word[ record_appear[now]*69 + ww ].wnum = now;
-      my_word[ record_appear[now]*69 + ww ].weight += examples[0].x.x_part[cc][ww];
+      my_word[ record_appear[now]*69 + ww ].weight += x.x_part[cc][ww];
+
+      // dummy state
+      my_word[ 49*69 + ww ].wnum = 49;
+      my_word[ 49*69 + ww ].weight += x.x_part[cc][ww];
     }
   }
+
   // for transition part
   int previous_transition = -1;
 
   // initialization of wnum
+  // since we no need to do sparse here
+  // then we need to initialize a 48*48 matrix
   for(int trans = 0; trans< (48*48); ++trans){
     if(trans != (48*48-1) ){
-      my_word[ count_sparse*69 + trans ].wnum = 49;
+      my_word[ count_sparse*69 + trans ].wnum = sm->sizePsi; // sm->sizePsi
     }
     else{ // last element
+      // psi format
       my_word[ count_sparse*69 + trans ].wnum = 0;
     }
   }
 
-  for (int cc=0; cc< (int)examples[0].y.y_part.size() ; ++cc){ 
+  for (int cc=0; cc< (int) y.y_part.size() ; ++cc){ 
         
-    now = mapp_int[ examples[0].y.y_part[cc] ] -1 ;
-
+    now = mapp_int[ y.y_part[cc] ] -1 ;
     if (previous_transition == -1){
       previous_transition = now;
       continue;
     }
 
-    my_word[ count_sparse*69 + previous_transition*48 + now ].wnum = 49;
+    // my_word[ count_sparse*69 + previous_transition*48 + now ].wnum = sm->sizePsi;
     my_word[ count_sparse*69 + previous_transition*48 + now ].weight += 1;
 
     previous_transition = now;
