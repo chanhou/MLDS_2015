@@ -118,7 +118,6 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
   
   string temp1;
   double temp2;
-  long count = 0;
   // int name_rec = 0;
   ifstream train_data;
   string previous_ppl = "0";
@@ -349,11 +348,78 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
      loss + margin/slack rescaling method. See that paper for details. */
   SVECTOR *fvec=NULL;
 
-
-
-  ( x  , y )
-
   /* insert code for computing the feature vector for x and y here */
+  int nn = 48*69+48*48+1;
+
+  // fvec = (SVECTOR *) malloc( sizeof(SVECTOR) );
+  // fvec->words = (WORD *) malloc( sizeof(WORD)*nn);
+  WORD* my_word = (WORD *) malloc( sizeof(WORD)*nn);
+
+  map<string,int> mapp_int;  
+  ifstream lab_int;
+  lab_int.open("../48_idx_chr.map_b");
+  string forget;
+  while(getline(lab_int,line)){
+    istringstream iss(line);
+    iss >>temp1 >> temp2 >> forget;
+    mapp_int[ temp1 ] = (temp2+1); // index start from 1
+  }
+
+  int now;
+  int count_p = 0;
+  int count_sparse = 0;
+
+  vector<int> record_appear (49,-1);
+  vector<int> record_sparse (49,-1);
+  for(auto &y: examples[0].y.y_part){
+    record_sparse[ mapp_int[y] ] = 1;
+  }
+  for(int ee=0; ee< (int)record_sparse.size(); ++ee){
+    if( record_sparse[ee] != -1){
+      record_appear[ee] = count_p;
+      count_p ++;
+      count_sparse ++;
+    }
+  }
+
+  // for observation part
+  for (int cc=0; cc< (int) examples[0].x.x_part.size() ; ++cc){ // 474
+    
+    now = mapp_int[examples[0].y.y_part[cc]];
+    for(int ww=0; ww< (int)examples[0].x.x_part[cc].size(); ++ww ){
+      my_word[ record_appear[now]*69 + ww ].wnum = now;
+      my_word[ record_appear[now]*69 + ww ].weight += examples[0].x.x_part[cc][ww];
+    }
+  }
+  // for transition part
+  int previous_transition = -1;
+
+  // initialization of wnum
+  for(int trans = 0; trans< (48*48); ++trans){
+    if(trans != (48*48-1) ){
+      my_word[ count_sparse*69 + trans ].wnum = 49;
+    }
+    else{ // last element
+      my_word[ count_sparse*69 + trans ].wnum = 0;
+    }
+  }
+
+  for (int cc=0; cc< (int)examples[0].y.y_part.size() ; ++cc){ 
+        
+    now = mapp_int[ examples[0].y.y_part[cc] ] -1 ;
+
+    if (previous_transition == -1){
+      previous_transition = now;
+      continue;
+    }
+
+    my_word[ count_sparse*69 + previous_transition*48 + now ].wnum = 49;
+    my_word[ count_sparse*69 + previous_transition*48 + now ].weight += 1;
+
+    previous_transition = now;
+  }
+
+  fvec = create_svector(my_word, false, 1); // userdefined set as false, factor set as 1, don't know set what
 
 
   return(fvec);
