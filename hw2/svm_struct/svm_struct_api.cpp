@@ -100,7 +100,7 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
 
   /* fill in your code here */
 
-  // input label y, create a mapper
+  // input label y, create a mapper to map y to the data
   vector<string> v;
   string line; 
   map<string,string> mapp_label;  
@@ -133,10 +133,11 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
     v.clear();
 
     iss >>temp1;
-    examples[count].y.y_part.push_back(mapp_label[temp1]);
     
+    // split the unique speaker
     split(temp1,'_',v);
 
+    // record the data
     while(!iss.eof()){
       iss >> temp2;
       // cout<<temp2<<endl;
@@ -146,21 +147,28 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
     // cout<<v[0]<<","<<v[1];
     ppl_name = v[0]+"_"+v[1];
     // cout<<ppl_name;
-    if(previous_ppl == "0") previous_ppl = ppl_name;
+    // if this is the first one
+    if(previous_ppl == "0") {
+      previous_ppl = ppl_name;
+    }
+    // if this speaker is the same with the previous data speaker
     if(previous_ppl == ppl_name){
       // record[count].push_back(x_value);
+      // push the data to this speaker
+      examples[count].y.y_part.push_back(mapp_label[temp1]);
+      // push the data to this speaker
       examples[count].x.x_part.push_back(x_value);
       // cout<<"ff"<<record[count].size()<<endl;
       x_value.clear();
     }
-    else{
-      if(previous_ppl != "0"){
-
-        count++;
-        // record[count].push_back(x_value);
-        examples[count].x.x_part.push_back(x_value);
-        // if (count==2) break;
-      }
+    else{ // this speaker is not the same with previous on
+      count++; // count for the unique speaker
+      // record[count].push_back(x_value);
+      // push this speaker data to its own y
+      examples[count].y.y_part.push_back(mapp_label[temp1]);
+      // push this speaker data to its own x
+      examples[count].x.x_part.push_back(x_value);
+      // if (count==2) break;
       previous_ppl = ppl_name;
       x_value.clear();
     }
