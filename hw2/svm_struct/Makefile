@@ -7,7 +7,9 @@
 CC = gcc
 LD = gcc
 
-CFLAGS =   $(SFLAGS) -O3 -fomit-frame-pointer -ffast-math -Wall 
+CPPFLAGS = -O2 -std=c++11 -Wall
+
+CFLAGS =   $(SFLAGS) -O3 -fomit-frame-pointer -ffast-math -Wall -std=c++11
 LDFLAGS =  $(SFLAGS) -O3 -Wall
 #CFLAGS =  $(SFLAGS) -pg -Wall
 #LDFLAGS = $(SFLAGS) -pg -lm -Wall 
@@ -49,8 +51,16 @@ svm_empty_learn: svm_light_hideo_noexe svm_struct_noexe svm_struct_api.o svm_str
 	$(LD) $(LDFLAGS) svm_struct/svm_struct_learn.o svm_struct_learn_custom.o svm_struct_api.o svm_light/svm_hideo.o svm_light/svm_learn.o svm_light/svm_common.o svm_struct/svm_struct_common.o svm_struct/svm_struct_main.o -o svm_empty_learn $(LIBS) -lm
 
 
-svm_struct_api.o: svm_struct_api.c svm_struct_api.h svm_struct_api_types.h svm_struct/svm_struct_common.h
-	$(CC) -c $(CFLAGS) svm_struct_api.c -o svm_struct_api.o
+svm_struct_api.o: svm_struct_api.cpp svm_struct_api.h svm_struct_api_types.h svm_struct/svm_struct_common.h
+	# $(CC) -c $(CFLAGS) svm_struct_api.cpp -o svm_struct_api.o
+	g++ -c $(CPPFLAGS) svm_struct_api.cpp -o svm_struct_api.o
 
 svm_struct_learn_custom.o: svm_struct_learn_custom.c svm_struct_api.h svm_light/svm_common.h svm_struct_api_types.h svm_struct/svm_struct_common.h
 	$(CC) -c $(CFLAGS) svm_struct_learn_custom.c -o svm_struct_learn_custom.o
+
+
+test: test.cpp
+	g++ $(CPPFLAGS) $^ -o $@
+
+run:
+	./test
