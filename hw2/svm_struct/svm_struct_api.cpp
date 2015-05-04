@@ -204,7 +204,11 @@ void        init_struct_model(SAMPLE sample, STRUCTMODEL *sm,
 
   // 48 phones + 1 dummy + 1 transition
 
-  sm->sizePsi=50; /* replace by appropriate number of features */
+  // sm->sizePsi=50; /* replace by appropriate number of features */
+
+  // 48 phones + 1 transition
+
+  sm->sizePsi=49; /* replace by appropriate number of features */
 }
 
 CONSTSET    init_struct_constraints(SAMPLE sample, STRUCTMODEL *sm, 
@@ -324,6 +328,10 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
 
   /* insert your code for computing the label ybar here */
 
+  // use viterbi to find what the ybar is
+
+  // then check argmax_{ybar} sprod_ns(sm->w, psi(x, ybar, sm, sparm))
+  // will be same as what viterbi calculate
 
 
 
@@ -367,7 +375,7 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
   /* insert code for computing the feature vector for x and y here */
   int nn = 48*69+48*48+1;
 
-  WORD* my_word = (WORD *) malloc( sizeof(WORD)*nn);
+  WORD* my_word = (WORD *) my_malloc( sizeof(WORD)*nn);
 
   // using label map file to map the chr to index
   // map<string,int> mapp_int;  
@@ -401,7 +409,7 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
   }
   ///////
   // for dummy state
-  count_sparse ++; 
+  // count_sparse ++; 
   ///////
 
   // for observation part
@@ -415,9 +423,11 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
       my_word[ record_appear[now]*69 + ww ].wnum = now;
       my_word[ record_appear[now]*69 + ww ].weight += x.x_part[cc][ww];
 
+      ///////
       // dummy state
-      my_word[ 49*69 + ww ].wnum = 49;
-      my_word[ 49*69 + ww ].weight += x.x_part[cc][ww];
+      ///////
+      // my_word[ 49*69 + ww ].wnum = 49;
+      // my_word[ 49*69 + ww ].weight += x.x_part[cc][ww];
     }
   }
 
@@ -464,6 +474,10 @@ double      loss(LABEL y, LABEL ybar, STRUCT_LEARN_PARM *sparm)
      y==ybar has to be zero. sparm->loss_function is set with the -l option. */
   if(sparm->loss_function == 0) { /* type 0 loss: 0/1 loss */
                                   /* return 0, if y==ybar. return 1 else */
+
+    // if y size and ybar size different? 
+    // how to calculate ?
+    // if i pass the same size of ybar then no need t oconsider this question
     double error = 0;
     for(int i=0;i< y.y_part.size() ; ++i){
       if ( y.y_part[i] != ybar.y_part[i] ){
