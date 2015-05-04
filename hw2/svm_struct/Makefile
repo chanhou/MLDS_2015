@@ -4,8 +4,8 @@
 #		make 'SFLAGS=-mno-cygwin'
 
 #Use the following to compile under unix or cygwin
-CC = gcc
-LD = gcc
+CC = g++
+LD = g++
 
 CPPFLAGS = -O2 -std=c++11 -Wall
 
@@ -53,7 +53,7 @@ svm_empty_learn: svm_light_hideo_noexe svm_struct_noexe svm_struct_api.o svm_str
 
 svm_struct_api.o: svm_struct_api.cpp svm_struct_api.h svm_struct_api_types.h svm_struct/svm_struct_common.h
 	# $(CC) -c $(CFLAGS) svm_struct_api.cpp -o svm_struct_api.o
-	g++ -c $(CPPFLAGS) svm_struct_api.cpp -o svm_struct_api.o
+	$(CC) -c $(CFLAGS) svm_struct_api.cpp -o svm_struct_api.o
 
 svm_struct_learn_custom.o: svm_struct_learn_custom.c svm_struct_api.h svm_light/svm_common.h svm_struct_api_types.h svm_struct/svm_struct_common.h
 	$(CC) -c $(CFLAGS) svm_struct_learn_custom.c -o svm_struct_learn_custom.o
