@@ -114,10 +114,23 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
     mapp_label[v[0]] = v[1];
   }
 
-  // input data of x:
-  
+  // using label map file to map the chr to index
+  map<string,int> mapp_int;  
+  ifstream lab_int;
+  lab_int.open("../48_idx_chr.map_b");
+  string forget;
   string temp1;
   double temp2;
+  while(getline(lab_int,line)){
+    istringstream iss(line);
+    iss >>temp1 >> temp2 >> forget;
+    mapp_int[ temp1 ] = (temp2+1); // index start from 1 in psi for featurenum
+  }
+
+
+  // input data of x:
+  // string temp1;
+  // double temp2;
   // int name_rec = 0;
   ifstream train_data;
   string previous_ppl = "0";
@@ -154,7 +167,7 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
     if(previous_ppl == ppl_name){
       // record[count].push_back(x_value);
       // push the data to this speaker
-      examples[count].y.y_part.push_back(mapp_label[temp1]);
+      examples[count].y.y_part.push_back( mapp_int[ mapp_label[temp1] ]);
       // push the data to this speaker
       examples[count].x.x_part.push_back(x_value);
       // cout<<"ff"<<record[count].size()<<endl;
@@ -164,7 +177,7 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
       count++; // count for the unique speaker
       // record[count].push_back(x_value);
       // push this speaker data to its own y
-      examples[count].y.y_part.push_back(mapp_label[temp1]);
+      examples[count].y.y_part.push_back( mapp_int[ mapp_label[temp1] ] );
       // push this speaker data to its own x
       examples[count].x.x_part.push_back(x_value);
       // if (count==2) break;
@@ -311,6 +324,9 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
 
   /* insert your code for computing the label ybar here */
 
+
+
+
   return(ybar);
 }
 
@@ -354,15 +370,15 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
   WORD* my_word = (WORD *) malloc( sizeof(WORD)*nn);
 
   // using label map file to map the chr to index
-  map<string,int> mapp_int;  
-  ifstream lab_int;
-  lab_int.open("../48_idx_chr.map_b");
-  string forget;
-  while(getline(lab_int,line)){
-    istringstream iss(line);
-    iss >>temp1 >> temp2 >> forget;
-    mapp_int[ temp1 ] = (temp2+1); // index start from 1 in psi for featurenum
-  }
+  // map<string,int> mapp_int;  
+  // ifstream lab_int;
+  // lab_int.open("../48_idx_chr.map_b");
+  // string forget;
+  // while(getline(lab_int,line)){
+  //   istringstream iss(line);
+  //   iss >>temp1 >> temp2 >> forget;
+  //   mapp_int[ temp1 ] = (temp2+1); // index start from 1 in psi for featurenum
+  // }
 
   int now;
   int count_p = 0;
@@ -372,7 +388,8 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
   vector<int> record_sparse (49,-1);
   for(auto &y: y.y_part){
     // record the label which have appear
-    record_sparse[ mapp_int[y] ] = 1;
+    // record_sparse[ mapp_int[y] ] = 1;
+    record_sparse[ y ] = 1;
   }
   for(int ee=0; ee< (int)record_sparse.size(); ++ee){
     // record the order and position for fixed featurenum
@@ -390,7 +407,8 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
   // for observation part
   for (int cc=0; cc< (int) x.x_part.size() ; ++cc){ // 474
     // the feature num
-    now = mapp_int[ y.y_part[cc] ];
+    // now = mapp_int[ y.y_part[cc] ];
+    now =  y.y_part[cc];
 
     for(int ww=0; ww< (int) x.x_part[cc].size(); ++ww ){
       // record_appear[now]*69 specify the position of feature num
@@ -421,7 +439,8 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
 
   for (int cc=0; cc< (int) y.y_part.size() ; ++cc){ 
         
-    now = mapp_int[ y.y_part[cc] ] -1 ;
+    // now = mapp_int[ y.y_part[cc] ] -1 ;
+    now =  y.y_part[cc]  - 1 ;
     if (previous_transition == -1){
       previous_transition = now;
       continue;
@@ -449,21 +468,22 @@ double      loss(LABEL y, LABEL ybar, STRUCT_LEARN_PARM *sparm)
     for(int i=0;i< y.y_part.size() ; ++i){
       if ( y.y_part[i] != ybar.y_part[i] ){
         error ++;
-        return 1;
+        // return 1;
       }
     }
-    return 0;
+    // return 0;
+    return (double) error/y.y_part.size();
   }
   else {
     /* Put your code for different loss functions here. But then
        find_most_violated_constraint_???(x, y, sm) has to return the
        highest scoring label with the largest loss. */
-    for(int i=0;i< y.y_part.size() ; ++i){
-      if ( y.y_part[i] != ybar.y_part[i] ){
-        error ++;
-      }
-    }
-    return (double) error/y.y_part.size();    
+    // for(int i=0;i< y.y_part.size() ; ++i){
+    //   if ( y.y_part[i] != ybar.y_part[i] ){
+    //     error ++;
+    //   }
+    // }
+    // return (double) error/y.y_part.size();    
 
   }
 }

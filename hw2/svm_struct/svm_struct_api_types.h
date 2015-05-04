@@ -75,7 +75,8 @@ typedef struct label {
   // int add_your_variables_here;
 
   // dynamic dimension
-  std::vector<std::string> y_part;
+  // std::vector<std::string> y_part;
+  std::vector< int > y_part;
 
 } LABEL;
 
