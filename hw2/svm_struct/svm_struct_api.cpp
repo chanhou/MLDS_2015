@@ -124,7 +124,7 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
   while(getline(lab_int,line)){
     istringstream iss(line);
     iss >>temp1 >> temp2 >> forget;
-    mapp_int[ temp1 ] = (temp2+1); // index start from 1 in psi for featurenum
+    mapp_int[ temp1 ] = (temp2 + 1); // index start from 1 in psi for featurenum
   }
 
 
@@ -332,6 +332,7 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
 
   // then check argmax_{ybar} sprod_ns(sm->w, psi(x, ybar, sm, sparm))
   // will be same as what viterbi calculate
+
 
 
 
