@@ -9,8 +9,8 @@ LD = g++
 
 CPPFLAGS = -O2 -std=c++11 -Wall
 
-CFLAGS =   $(SFLAGS) -O3 -fomit-frame-pointer -ffast-math -Wall -std=c++11
-LDFLAGS =  $(SFLAGS) -O3 -Wall
+CFLAGS =   $(SFLAGS) -O3 -fomit-frame-pointer -ffast-math -Wall -std=c++11 -fopenmp
+LDFLAGS =  $(SFLAGS) -O3 -Wall -fopenmp
 #CFLAGS =  $(SFLAGS) -pg -Wall
 #LDFLAGS = $(SFLAGS) -pg -lm -Wall 
 
@@ -62,5 +62,9 @@ svm_struct_learn_custom.o: svm_struct_learn_custom.c svm_struct_api.h svm_light/
 test: test.cpp
 	g++ $(CPPFLAGS) $^ -o $@
 
-run:
+run_train:
+	./svm_empty_learn -c 1.0 -w 2 ../../hw1/MLDS_HW1_RELEASE_v1/fbank/train.ark model.dat
+
+run_test:
 	./test
+
