@@ -99,34 +99,55 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
   examples=(EXAMPLE *)my_malloc(sizeof(EXAMPLE)*n);
 
   /* fill in your code here */
+  string file_name;
+  for(int www=0;www<strlen(file); ++www){
+    file_name.push_back(file[www]);
+  }
+  cout<<endl;
+  // bool y_exist;
+  // string rrrr = "train";
+  // size_t ggg = file_name.find(rrrr);
+  // if ( ggg < strlen(file) ) y_exist = true;
+  // cout<<endl<<file_name<< ggg <<endl;
+  // cout<<"are you ready????"<<endl;
 
-  // input label y, create a mapper to map y to the data
   vector<string> v;
   string line; 
   map<string,string> mapp_label;  
-  ifstream train_lab;
-  train_lab.open("../../hw1/MLDS_HW1_RELEASE_v1/label/train.lab");
-  while(getline(train_lab,line)){
-
-    v.clear();
-    split(line,',',v);
-    
-    mapp_label[v[0]] = v[1];
-  }
-
-  // using label map file to map the chr to index
-  map<string,int> mapp_int;  
-  ifstream lab_int;
-  lab_int.open("../48_idx_chr.map_b");
+  map<string,int> mapp_int;
   string forget;
   string temp1;
   double temp2;
-  while(getline(lab_int,line)){
-    istringstream iss(line);
-    iss >>temp1 >> temp2 >> forget;
-    mapp_int[ temp1 ] = (temp2 + 1); // index start from 1 in psi for featurenum
-  }
+  // if (y_exist){
 
+    // input label y, create a mapper to map y to the data
+    // vector<string> v;
+    // string line; 
+    // map<string,string> mapp_label;  
+    ifstream train_lab;
+    train_lab.open("../../hw1/MLDS_HW1_RELEASE_v1/label/train.lab");
+
+    while(getline(train_lab,line)){
+
+      v.clear();
+      split(line,',',v);
+      
+      mapp_label[v[0]] = v[1];
+    }
+
+    // using label map file to map the chr to index
+    // map<string,int> mapp_int;  
+    ifstream lab_int;
+    lab_int.open("../48_idx_chr.map_b");
+    // string forget;
+    // string temp1;
+    // double temp2;
+    while(getline(lab_int,line)){
+      istringstream iss(line);
+      iss >>temp1 >> temp2 >> forget;
+      mapp_int[ temp1 ] = (temp2 + 1); // index start from 1 in psi for featurenum
+    }
+  // }
 
   // input data of x:
   // string temp1;
@@ -139,7 +160,9 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
   vector<double> x_value;
   // vector<vector<vector<double>>> record (n);
 
-  train_data.open("../../hw1/MLDS_HW1_RELEASE_v1/fbank/train.ark");
+  // train_data.open("../../hw1/MLDS_HW1_RELEASE_v1/fbank/train.ark");
+  train_data.open(file_name);
+
   while(getline(train_data,line)){
     istringstream iss(line);
     v.clear();
@@ -167,17 +190,25 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
     if(previous_ppl == ppl_name){
       // record[count].push_back(x_value);
       // push the data to this speaker
-      examples[count].y.y_part.push_back( mapp_int[ mapp_label[temp1] ]);
+      // if (y_exist){
+        examples[count].y.y_part.push_back( mapp_int[ mapp_label[temp1] ]);
+      // }
       // push the data to this speaker
       examples[count].x.x_part.push_back(x_value);
       // cout<<"ff"<<record[count].size()<<endl;
       x_value.clear();
     }
-    else{ // this speaker is not the same with previous on
+    else{ // this speaker is not the same with previous one
       count++; // count for the unique speaker
-      // record[count].push_back(x_value);
-      // push this speaker data to its own y
-      examples[count].y.y_part.push_back( mapp_int[ mapp_label[temp1] ] );
+      // if(y_exist) cout<<"why"<<endl;
+      // cout<<examples[count-1].y.y_part.size()<<endl;
+      // cout<<examples[count-1].x.x_part.size()<<endl;
+      // break;
+      // if (y_exist){
+        // record[count].push_back(x_value);
+        // push this speaker data to its own y
+        examples[count].y.y_part.push_back( mapp_int[ mapp_label[temp1] ] );
+      // }
       // push this speaker data to its own x
       examples[count].x.x_part.push_back(x_value);
       // if (count==2) break;
@@ -186,6 +217,8 @@ SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
     }
 
   }
+
+  cout<<"Yes, we are done loading"<<endl;
 
   sample.n=n;
   sample.examples=examples;
@@ -207,7 +240,7 @@ void        init_struct_model(SAMPLE sample, STRUCTMODEL *sm,
   // sm->sizePsi=50; /* replace by appropriate number of features */
 
   // 48 phones + 1 transition
-
+  cout<<"==== Now initialize the model part ===="<<endl;
   sm->sizePsi=49; /* replace by appropriate number of features */
 }
 
@@ -263,6 +296,8 @@ LABEL       classify_struct_example(PATTERN x, STRUCTMODEL *sm,
   LABEL y;
 
   /* insert your code for computing the predicted label y here */
+
+
 
   return(y);
 }
@@ -326,6 +361,8 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
      empty_label(y). */
   LABEL ybar;
 
+  cout<<" large margin rescaling QQ "<<endl;
+
   /* insert your code for computing the label ybar here */
 
   // use viterbi to find what the ybar is
@@ -372,6 +409,9 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
      inner vector product) and the appropriate function of the
      loss + margin/slack rescaling method. See that paper for details. */
   SVECTOR *fvec=NULL;
+
+  // cout<<" psi transformation "<<endl;
+  // cout<<" psi transformation "<<endl;
 
   /* insert code for computing the feature vector for x and y here */
   int nn = 48*69+48*48+1;
@@ -463,14 +503,17 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
     previous_transition = now;
   }
 
-  fvec = create_svector(my_word, false, 1); // userdefined set as false, factor set as 1, don't know set what
+  fvec = create_svector(my_word, NULL, 1); // userdefined set as false, factor set as 1, don't know set what
 
+  // cout<<" psi transformation finished "<<endl;
 
   return(fvec);
 }
 
 double      loss(LABEL y, LABEL ybar, STRUCT_LEARN_PARM *sparm)
 {
+
+  cout<<" loss start "<<endl;
   /* loss for correct label y and predicted label ybar. The loss for
      y==ybar has to be zero. sparm->loss_function is set with the -l option. */
   if(sparm->loss_function == 0) { /* type 0 loss: 0/1 loss */
@@ -487,6 +530,7 @@ double      loss(LABEL y, LABEL ybar, STRUCT_LEARN_PARM *sparm)
       }
     }
     // return 0;
+    cout<<" loss finished "<<endl;
     return (double) error/y.y_part.size();
   }
   else {
@@ -549,17 +593,206 @@ void        write_struct_model(char *file, STRUCTMODEL *sm,
 			       STRUCT_LEARN_PARM *sparm)
 {
   /* Writes structural model sm to file file. */
+
+  FILE *writefl;
+  writefl = fopen ( file, "w");
+
+  // record w
+  // fprintf(writefl, "weight " );
+  for( int i=0; i< strlen(sm->w) ; ++i ){
+    fprintf(writefl, "%f" ,sm->w[i]);
+    if ((i+1) != strlen(sm->w)){
+      fprintf(writefl, ",");
+    }
+  }
+  fprintf(writefl, "\n");
+
+  // record sizePsi
+  fprintf(writefl, "%lu\n", sm->sizePsi );
+  
+  // record walpha
+  fprintf(writefl, "%f\n", sm->walpha );
+
+  // record svm_model, copy svm_common.c of write model
+  // fprintf(writefl, "" );
+  long j,i,sv_num;
+  SVECTOR *v;
+  MODEL *compact_model=NULL;
+
+  /* Replace SV with single weight vector */
+  if(0 && sm->svm_model->kernel_parm.kernel_type == LINEAR) {
+    // if(verbosity>=1) {
+    //   printf("(compacting..."); fflush(stdout);
+    // }
+    compact_model=compact_linear_model(sm->svm_model);
+    sm->svm_model=compact_model;
+    // if(verbosity>=1) {
+    //   printf("done)"); fflush(stdout);
+    // }
+  }
+
+  // fprintf(writefl,"SVM-light Version %s\n",VERSION);
+  fprintf(writefl,"%ld # kernel type\n",
+    sm->svm_model->kernel_parm.kernel_type);
+  fprintf(writefl,"%ld # kernel parameter -d \n",
+    sm->svm_model->kernel_parm.poly_degree);
+  fprintf(writefl,"%.8g # kernel parameter -g \n",
+    sm->svm_model->kernel_parm.rbf_gamma);
+  fprintf(writefl,"%.8g # kernel parameter -s \n",
+    sm->svm_model->kernel_parm.coef_lin);
+  fprintf(writefl,"%.8g # kernel parameter -r \n",
+    sm->svm_model->kernel_parm.coef_const);
+  fprintf(writefl,"%s# kernel parameter -u \n",sm->svm_model->kernel_parm.custom);
+  fprintf(writefl,"%ld # highest feature index \n",sm->svm_model->totwords);
+  fprintf(writefl,"%ld # number of training documents \n",sm->svm_model->totdoc);
+ 
+  sv_num=1;
+  for(i=1;i<sm->svm_model->sv_num;i++) {
+    for(v=sm->svm_model->supvec[i]->fvec;v;v=v->next) 
+      sv_num++;
+  }
+  fprintf(writefl,"%ld # number of support vectors plus 1 \n",sv_num);
+  fprintf(writefl,"%.8g # threshold b, each following line is a SV (starting with alpha*y)\n",sm->svm_model->b);
+
+  for(i=1;i<sm->svm_model->sv_num;i++) {
+    for(v=sm->svm_model->supvec[i]->fvec;v;v=v->next) {
+      fprintf(writefl,"%.32g ",sm->svm_model->alpha[i]*v->factor);
+      for (j=0; (v->words[j]).wnum; j++) {
+        fprintf(writefl,"%ld:%.8g ",
+        (long)(v->words[j]).wnum,
+        (double)(v->words[j]).weight);
+      }
+      if(v->userdefined)
+        fprintf(writefl,"#%s\n",v->userdefined);
+      else
+        fprintf(writefl,"#\n");
+    }
+  }
+
+  fclose(writefl);
+
+
 }
 
 STRUCTMODEL read_struct_model(char *file, STRUCT_LEARN_PARM *sparm)
 {
   /* Reads structural model sm from file file. This function is used
      only in the prediction module, not in the learning module. */
+
+  // http://stackoverflow.com/questions/21058765/deleting-lines-after-reading-them-in-c-program-using-system
+  ifstream preprocess;
+  preprocess.open(file);
+  vector<string> data;
+  string line;
+  stringstream ss;
+  int lineeee = 0;
+
+  // double *ww;
+  // long sizePsiii;
+  // double walphaaa;
+  STRUCTMODEL *sm;
+  vector<double> vv;
+
+  sm = (STRUCTMODEL *)my_malloc(sizeof(STRUCTMODEL));
+  sm->w = (double *)my_malloc(sizeof(double)*(48*69+48*48) );
+
+  if(preprocess.is_open()){
+    while(getline(preprocess, line)){
+      if(lineeee == 0){ // weight
+        split(line, ',', vv);
+        for(int qqq=0; qqq<vv.size(); ++qqq){
+          sm->w[qqq]=vv[qqq];
+        }
+        vv.clear();
+      }
+      else if (lineeee == 1){
+        sm->sizePsi = stol(line);
+      }
+      else{
+        sm->walpha = stod(line);
+      }
+      lineeee++;
+      if(lineeee==3)break;
+    }
+    ss<<"sed -i -e 1,"<<lineeee<<"d "<<file;
+  system(ss.str().c_str());
+  }
+  preprocess.close();
+
+
+  // start process model file
+  // read svm_model, copy svm_common.c of read model
+
+  FILE *modelfl;
+
+  long i,queryid,slackid;
+  double costfactor;
+  long max_sv,max_words,ll,wpos;
+  char *line,*comment;
+  WORD *words;
+  // char version_buffer[100];
+  MODEL *model;
+
+  nol_ll(file,&max_sv,&max_words,&ll);
+  max_words+=2;
+  ll+=2;
+
+  words = (WORD *)my_malloc(sizeof(WORD)*(max_words+10));
+  line = (char *)my_malloc(sizeof(char)*ll);
+  sm->svm_model = (MODEL *)my_malloc(sizeof(MODEL));
+
+  modelfl = fopen (file, "r");
+  
+  fscanf(modelfl,"%ld%*[^\n]\n", &(sm->svm_model)->kernel_parm.kernel_type);  
+  fscanf(modelfl,"%ld%*[^\n]\n", &(sm->svm_model)->kernel_parm.poly_degree);
+  fscanf(modelfl,"%lf%*[^\n]\n", &(sm->svm_model)->kernel_parm.rbf_gamma);
+  fscanf(modelfl,"%lf%*[^\n]\n", &(sm->svm_model)->kernel_parm.coef_lin);
+  fscanf(modelfl,"%lf%*[^\n]\n", &(sm->svm_model)->kernel_parm.coef_const);
+  fscanf(modelfl,"%[^#]%*[^\n]\n", (sm->svm_model)->kernel_parm.custom);
+
+  fscanf(modelfl,"%ld%*[^\n]\n", &(sm->svm_model)->totwords);
+  fscanf(modelfl,"%ld%*[^\n]\n", &(sm->svm_model)->totdoc);
+  fscanf(modelfl,"%ld%*[^\n]\n", &(sm->svm_model)->sv_num);
+  fscanf(modelfl,"%lf%*[^\n]\n", &(sm->svm_model)->b);
+
+  (sm->svm_model)->supvec = (DOC **)my_malloc(sizeof(DOC *)*(sm->svm_model)->sv_num);
+  (sm->svm_model)->alpha = (double *)my_malloc(sizeof(double)*(sm->svm_model)->sv_num);
+  (sm->svm_model)->index=NULL;
+  (sm->svm_model)->lin_weights=NULL;
+
+  for(i=1;i<(sm->svm_model)->sv_num;i++) {
+    fgets(line,(int)ll,modelfl);
+    if(!parse_document(line,words,&((sm->svm_model)->alpha[i]),&queryid,&slackid,
+           &costfactor,&wpos,max_words,&comment)) {
+      printf("\nParsing error while reading (sm->svm_model) file in SV %ld!\n%s",
+       i,line);
+      exit(1);
+    }
+    (sm->svm_model)->supvec[i] = create_example(-1,
+              0,0,
+              0.0,
+              create_svector(words,comment,1.0));
+  }
+  fclose(modelfl);
+  free(line);
+  free(words);
+
+  return (sm);
+
 }
 
 void        write_label(FILE *fp, LABEL y)
 {
   /* Writes label y to file handle fp. */
+
+  for(int i =0 ; i< y.y_part.size(); ++i){
+    fprintf( fp , "%i", y.y_part[i] );
+    if((i+1) != y.y_part.size()) {
+      fprintf( fp , ",");
+    }
+  }
+  fprintf( fp , "\n" );
+
 } 
 
 void        free_pattern(PATTERN x) {
