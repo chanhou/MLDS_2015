@@ -343,28 +343,64 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
   // SVECTOR *feature;
   // feture = psi(x, y, sm, sparm);
   
-  totTimeFrame = x.size();
+  int totTimeFrame = x.x_part.size();
+  
   vector< vector < double > >  delta;
   delta.resize(totTimeFrame);
   for( int t=0; t<totTimeFrame; t++)
     delta[t].resize(48);
 
+  vector< vector < int > > traceY;
+  traceY.resize(totTimeFrame);
+  for( int t=0; t<totTimeFrame; t++)
+    traceY[t].resize(48);
+
   // init
-  for( int s=0; s<48; s++)
-    delta[0][s] = w[1][s] * x[0][s];
-  
+  for( int s=0; s<48; s++) {
+	// prod : w_sate * x_timeFrame
+	for(int f=0; f<69; f++)
+    		delta[0][s] += (sm->w[1+0+s*69+f]) * x.x_part[0][s+f];
+  }
+
   // recur 
   for( int t=1; t< totTimeFrame; t++) {
-  
+    // find max
+	for( int s=0; s<48; s++) {
+    		double max_value = 0;
+		int max_candi = 0;
+		for( int m=0; m< 48; m++) {
+			if( delta[t-1][m]*(sm->w[48*69+((m-1)*69+s)]) > max_value ) {
+				max_value = delta[t-1][m]*(sm->w[48*69+(m-1)*69+s]);
+				max_candi = m;
+			}
+		}
+		traceY[t][s] = max_candi;
+		// prod : max * w_state * x_timeFrame
+		for(int f=0; f<69; f++)
+			delta[t][s] += max_value * (sm->w[1+0+s*69+f]) * x.x_part[t][s*69+f];
+	}
   }
- 
+ 	
   // terminate
-
+  double max_all = 0;
+  int max_candi = 0;
+  for( int m=0; m<48; m++)
+	if( delta[totTimeFrame-1][m] > max_all) {
+		max_all = delta[totTimeFrame-1][m];
+		max_candi = m;
+	}
+  
   // goBack
-
-
- printf("??? MS ? \n");
-
+  ybar.y_part.insert(ybar.y_part.begin(), max_candi);
+  int back = max_candi;
+  int t = totTimeFrame - 1;
+  while( t > 0 ) {
+	ybar.y_part.insert(ybar.y_part.begin(), traceY[t][back]);
+	back = traceY[t][back];
+	--t;
+  }
+  //printf("??? MS ? \n");
+ 
 
   return(ybar);
 }
