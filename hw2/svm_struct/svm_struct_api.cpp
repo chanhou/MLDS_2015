@@ -28,6 +28,7 @@
 #include <vector>
 #include <sstream>
 #include <map>
+#include <math.h>
 
 #include <time.h>
 
@@ -393,15 +394,15 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
 
   // cout<<"00"<<totTimeFrame<<endl;
 
-  vector< vector < double > >  delta;
-  delta.resize(totTimeFrame);
-  for( int t=0; t<totTimeFrame; t++)
-    delta[t].resize(48);
+  vector< vector < double > >  delta( totTimeFrame, vector < double > ( 48 ,0.0) );
+  // delta.resize(totTimeFrame);
+  // for( int t=0; t<totTimeFrame; t++)
+  //   delta[t].resize(48);
 
-  vector< vector < int > > traceY;
-  traceY.resize(totTimeFrame);
-  for( int t=0; t<totTimeFrame; t++)
-    traceY[t].resize(48);
+  vector< vector < int > > traceY( totTimeFrame, vector < int > ( 48 ,-1) );
+  // traceY.resize(totTimeFrame);
+  // for( int t=0; t<totTimeFrame; t++) 
+    // traceY[t].resize(48);
 
   // cout<<"11"<<endl;
 
@@ -414,19 +415,21 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
       // y label also start from 1
       delta[0][s] += ( sm->w [ s*69 + f ]) * x.x_part[0][ f ] ;
     }
+    // delta[0][s] = exp(delta[0][s]);
   }
 
-  // cout<<"22"<<endl;
+  // // cout<<"22"<<endl;
 
-  // recur 
+  // // recur 
   double temppp = 0;
   for( int t=1; t< totTimeFrame; t++) {
     for( int s=0; s<48; s++) { // i
-      double max_value = 0;
+      double max_value = -INFINITY;
       int max_candi = 0;
       // find max
       for( int m=0; m < 48; m++) { // j
         // if( delta[t-1][m] * (sm->w [ 48*69 + ( (m-1)*69+s )] ) > max_value ) {
+        // temppp = delta[t-1][m] * exp( sm->w [ 48*69 + ( m*48 + s )] );
         temppp = delta[t-1][m] * ( sm->w [ 48*69 + ( m*48 + s )] );
 
         if( temppp  > max_value ) {
@@ -435,17 +438,20 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
           max_candi = m;
         }
       }
-      traceY[t-1][s] = max_candi; // y label start from 1, the best for previous timeframe
+      traceY[ t ][ s ] = max_candi; // y label start from 1, the best for previous timeframe
       // prod : max * w_state * x_timeFrame
-      for(int f=0; f<69; f++) // timeframe
-        delta[t][s] += max_value * (sm->w[ s*69 + f ]) * x.x_part[t][ f ];
+      for(int f=0; f<69; f++){ // timeframe
+        delta[t][s] +=  (sm->w[ s*69 + f ]) * x.x_part[t][ f ]; // calculate prob(i|x_t)
+      }
+      // delta[t][s] = max_value * exp(delta[t][s]);
+      delta[t][s] *= max_value;
     }
   }
   
-  // cout<<"33"<<endl;
+  // // cout<<"33"<<endl;
 
-  // terminate
-  double max_all = 0;
+  // // terminate
+  double max_all = -INFINITY;
   int max_candi = 0;
   for( int m=0; m<48; m++){
     if( delta[totTimeFrame-1][m] > max_all) {
@@ -454,7 +460,7 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
     }
   }
   
-  // cout<<"44"<<endl;
+  // // cout<<"44"<<endl;
 
   // srand (time(NULL));
 
@@ -464,7 +470,7 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
   // else
   //   ybar.y_part.insert(ybar.y_part.begin(), rand() % 48 + 1 );  
   int back = max_candi ;
-  int t = totTimeFrame - 1;
+  int t = totTimeFrame - 1; 
   while( t > 0 ) {
     // if( traceY[t][back] != 0 ) 
       ybar.y_part.insert(ybar.y_part.begin(), traceY[t][back] + 1 );
@@ -476,29 +482,27 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
 
 
 
-  cout<<"viterbi done"<<endl;
+  // cout<<"viterbi done"<<endl;
 
-  for(auto & actual :y.y_part ){
-    cout<<actual<<",";
-  }
-  cout<<endl;
-  for(auto & pred :ybar.y_part ){
-    cout<<pred<<",";
-  }
-  cout<<endl;
+  // for(auto & actual :y.y_part ){
+  //   cout<<actual<<",";
+  // }
+  // cout<<endl;
+  // for(auto & pred :ybar.y_part ){
+  //   cout<<pred<<",";
+  // }
+  // cout<<endl;
 
-  // cout<<"test: "<<sprod_ns(sm->w, psi(x, y, sm, sparm))<<endl;
-  // cout<<"test: "<<sprod_ns(sm->w, psi(x, ybar, sm, sparm))<<endl;
+  // // cout<<"test: "<<sprod_ns(sm->w, psi(x, y, sm, sparm))<<endl;
+  // // cout<<"test: "<<sprod_ns(sm->w, psi(x, ybar, sm, sparm))<<endl;
 
-  cout<<"size of y: "<<y.y_part.size()<<endl;
-  cout<<"size of ybar: "<<ybar.y_part.size()<<endl;
+  // cout<<"size of y: "<<y.y_part.size()<<endl;
+  // cout<<"size of ybar: "<<ybar.y_part.size()<<endl;
 
-  double loss_cal = loss( y, ybar , sparm );
-  cout<<"loss::"<<loss_cal<<endl;
+  // double loss_cal = loss( y, ybar , sparm );
+  // cout<<"loss::"<<loss_cal<<endl;
 
-
-
-
+  // LABEL tt;
 
   return(ybar);
 }
@@ -509,16 +513,21 @@ int         empty_label(LABEL y)
      returned by find_most_violated_constraint_???(x, y, sm) if there
      is no incorrect label that can be found for x, or if it is unable
      to label x at all */
-  int count=0;
-  for(auto &yy :y.y_part){
-    if(yy == 0) count++;
-  }
+  // int count=0;
+  // for(auto &yy :y.y_part){
+  //   if(yy == 0) count++;
+  // }
+  // for(auto & actual :y.y_part ){
+  //   cout<<actual<<",";
+  // }
 
-  if (count == y.y_part.size()) return (0);
-  else return (1);
+  // cout<<"why:"<<count<<endl;
+
+  // if (count == y.y_part.size()) return (0);
+  // else return (1);
 
 
-  // return(0);
+  return(0);
 }
 
 SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
