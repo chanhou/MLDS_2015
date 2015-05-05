@@ -62,5 +62,9 @@ svm_struct_learn_custom.o: svm_struct_learn_custom.c svm_struct_api.h svm_light/
 test: test.cpp
 	g++ $(CPPFLAGS) $^ -o $@
 
-run:
+run_train:
+	./svm_empty_learn -c 1.0 -w 2 ../../hw1/MLDS_HW1_RELEASE_v1/fbank/train.ark model.dat
+
+run_test:
 	./test
+

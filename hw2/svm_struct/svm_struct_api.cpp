@@ -35,6 +35,8 @@ void split(const string& s, char c, vector<string>& v) {
   string::size_type i = 0;
   string::size_type j = s.find(c);
 
+  v.clear();
+
   if (j != string::npos){
     while (j != string::npos) {
       //if(j==(s.length())) break;
@@ -63,31 +65,31 @@ void split(const string& s, char c, vector<string>& v) {
   }
 }
 
-void        svm_struct_learn_api_init(int argc, char* argv[])
+void svm_struct_learn_api_init(int argc, char* argv[])
 {
   /* Called in learning part before anything else is done to allow
      any initializations that might be necessary. */
 }
 
-void        svm_struct_learn_api_exit()
+void svm_struct_learn_api_exit()
 {
   /* Called in learning part at the very end to allow any clean-up
      that might be necessary. */
 }
 
-void        svm_struct_classify_api_init(int argc, char* argv[])
+void svm_struct_classify_api_init(int argc, char* argv[])
 {
   /* Called in prediction part before anything else is done to allow
      any initializations that might be necessary. */
 }
 
-void        svm_struct_classify_api_exit()
+void svm_struct_classify_api_exit()
 {
   /* Called in prediction part at the very end to allow any clean-up
      that might be necessary. */
 }
 
-SAMPLE      read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
+SAMPLE read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
 {
   /* Reads struct examples and returns them in sample. The number of
      examples must be written into sample.n */
@@ -242,6 +244,7 @@ void        init_struct_model(SAMPLE sample, STRUCTMODEL *sm,
   // 48 phones + 1 transition
   cout<<"==== Now initialize the model part ===="<<endl;
   sm->sizePsi=49; /* replace by appropriate number of features */
+  cout<<"size of w: "<<sizeof(sm->w)<<endl;
 }
 
 CONSTSET    init_struct_constraints(SAMPLE sample, STRUCTMODEL *sm, 
@@ -259,7 +262,7 @@ CONSTSET    init_struct_constraints(SAMPLE sample, STRUCTMODEL *sm,
   long     sizePsi=sm->sizePsi;
   long     i;
   WORD     words[2];
-
+  cout<<"size of w in init constraint: "<<sizeof(sm->w)<<endl;
   if(1) { /* normal case: start with empty set of constraints */
     c.lhs=NULL;
     c.rhs=NULL;
@@ -362,6 +365,20 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
   LABEL ybar;
 
   cout<<" large margin rescaling QQ "<<endl;
+  // cout<<"size of x: "<<x.x_part.size()<<endl;
+  // cout<<"size of x: "<<x.x_part[0].size()<<endl;
+  // cout<<"size of y: "<<y.y_part.size()<<endl;
+  // cout<<"size of w: "<<sizeof(sm->w)<<endl;
+  // cout<<"size of w: "<<(sm->w).size()<<endl;
+  // for( int i=0; i< 5617 ; ++i ){
+  //   cout<<(sm->w)[i]<<",";
+  //   if(i==5615) cout<<endl;
+  // }
+  // cout<<endl;
+
+  // cout<<"test: "<<sprod_ns(sm->w, psi(x, y, sm, sparm))<<endl;
+
+  // write_struct_model("test_record_model.dat" , sm, sparm);
 
   /* insert your code for computing the label ybar here */
 
@@ -369,6 +386,63 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
 
   // then check argmax_{ybar} sprod_ns(sm->w, psi(x, ybar, sm, sparm))
   // will be same as what viterbi calculate
+
+  int totTimeFrame = x.x_part.size(); // 474 for first speaker
+  
+  vector< vector < double > >  delta;
+  delta.resize(totTimeFrame);
+  for( int t=0; t<totTimeFrame; t++)
+    delta[t].resize(48);
+
+  vector< vector < int > > traceY;
+  traceY.resize(totTimeFrame);
+  for( int t=0; t<totTimeFrame; t++)
+    traceY[t].resize(48);
+
+  // init
+  for( int s=0; s<48; s++) {
+  // prod : w_sate * x_timeFrame
+  for(int f=0; f<69; f++)
+        delta[0][s] += (sm->w[1+0+s*69+f]) * x.x_part[0][s+f];
+  }
+
+  // recur 
+  for( int t=1; t< totTimeFrame; t++) {
+    // find max
+  for( int s=0; s<48; s++) {
+        double max_value = 0;
+    int max_candi = 0;
+    for( int m=0; m< 48; m++) {
+      if( delta[t-1][m]*(sm->w[48*69+((m-1)*69+s)]) > max_value ) {
+        max_value = delta[t-1][m]*(sm->w[48*69+(m-1)*69+s]);
+        max_candi = m;
+      }
+    }
+    traceY[t][s] = max_candi;
+    // prod : max * w_state * x_timeFrame
+    for(int f=0; f<69; f++)
+      delta[t][s] += max_value * (sm->w[1+0+s*69+f]) * x.x_part[t][s*69+f];
+  }
+  }
+  
+  // terminate
+  double max_all = 0;
+  int max_candi = 0;
+  for( int m=0; m<48; m++)
+  if( delta[totTimeFrame-1][m] > max_all) {
+    max_all = delta[totTimeFrame-1][m];
+    max_candi = m;
+  }
+  
+  // goBack
+  ybar.y_part.insert(ybar.y_part.begin(), max_candi);
+  int back = max_candi;
+  int t = totTimeFrame - 1;
+  while( t > 0 ) {
+  ybar.y_part.insert(ybar.y_part.begin(), traceY[t][back]);
+  back = traceY[t][back];
+  --t;
+  }
 
 
 
@@ -412,6 +486,11 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
 
   // cout<<" psi transformation "<<endl;
   // cout<<" psi transformation "<<endl;
+
+  // cout<<"size of x: "<<x.x_part.size()<<endl;
+  // cout<<"size of x: "<<x.x_part[0].size()<<endl;
+  // cout<<"size of y: "<<y.y_part.size()<<endl;
+  // cout<<"size of w: "<<sizeof(sm->w)<<endl;
 
   /* insert code for computing the feature vector for x and y here */
   int nn = 48*69+48*48+1;
@@ -594,14 +673,16 @@ void        write_struct_model(char *file, STRUCTMODEL *sm,
 {
   /* Writes structural model sm to file file. */
 
+  cout<<endl<<"I am writing...model"<<endl;
+
   FILE *writefl;
   writefl = fopen ( file, "w");
 
   // record w
   // fprintf(writefl, "weight " );
-  for( int i=0; i< strlen(sm->w) ; ++i ){
+  for( int i=0; i< 5616 ; ++i ){
     fprintf(writefl, "%f" ,sm->w[i]);
-    if ((i+1) != strlen(sm->w)){
+    if ((i+1) != 5616) {
       fprintf(writefl, ",");
     }
   }
@@ -683,33 +764,33 @@ STRUCTMODEL read_struct_model(char *file, STRUCT_LEARN_PARM *sparm)
   ifstream preprocess;
   preprocess.open(file);
   vector<string> data;
-  string line;
+  string liness;
   stringstream ss;
   int lineeee = 0;
 
   // double *ww;
   // long sizePsiii;
   // double walphaaa;
-  STRUCTMODEL *sm;
-  vector<double> vv;
+  STRUCTMODEL sm;
+  vector<string> vv;
 
-  sm = (STRUCTMODEL *)my_malloc(sizeof(STRUCTMODEL));
-  sm->w = (double *)my_malloc(sizeof(double)*(48*69+48*48) );
+  // sm = (STRUCTMODEL *)my_malloc(sizeof(STRUCTMODEL));
+  sm.w = (double *)my_malloc(sizeof(double)*(48*69+48*48) );
 
   if(preprocess.is_open()){
-    while(getline(preprocess, line)){
+    while(getline(preprocess, liness)){
       if(lineeee == 0){ // weight
-        split(line, ',', vv);
+        split(liness, ',', vv);
         for(int qqq=0; qqq<vv.size(); ++qqq){
-          sm->w[qqq]=vv[qqq];
+          sm.w[qqq]= stod(vv[qqq]);
         }
         vv.clear();
       }
       else if (lineeee == 1){
-        sm->sizePsi = stol(line);
+        sm.sizePsi = stol(liness);
       }
       else{
-        sm->walpha = stod(line);
+        sm.walpha = stod(liness);
       }
       lineeee++;
       if(lineeee==3)break;
@@ -731,7 +812,7 @@ STRUCTMODEL read_struct_model(char *file, STRUCT_LEARN_PARM *sparm)
   char *line,*comment;
   WORD *words;
   // char version_buffer[100];
-  MODEL *model;
+  // MODEL *model;
 
   nol_ll(file,&max_sv,&max_words,&ll);
   max_words+=2;
@@ -739,36 +820,36 @@ STRUCTMODEL read_struct_model(char *file, STRUCT_LEARN_PARM *sparm)
 
   words = (WORD *)my_malloc(sizeof(WORD)*(max_words+10));
   line = (char *)my_malloc(sizeof(char)*ll);
-  sm->svm_model = (MODEL *)my_malloc(sizeof(MODEL));
+  sm.svm_model = (MODEL *)my_malloc(sizeof(MODEL));
 
   modelfl = fopen (file, "r");
   
-  fscanf(modelfl,"%ld%*[^\n]\n", &(sm->svm_model)->kernel_parm.kernel_type);  
-  fscanf(modelfl,"%ld%*[^\n]\n", &(sm->svm_model)->kernel_parm.poly_degree);
-  fscanf(modelfl,"%lf%*[^\n]\n", &(sm->svm_model)->kernel_parm.rbf_gamma);
-  fscanf(modelfl,"%lf%*[^\n]\n", &(sm->svm_model)->kernel_parm.coef_lin);
-  fscanf(modelfl,"%lf%*[^\n]\n", &(sm->svm_model)->kernel_parm.coef_const);
-  fscanf(modelfl,"%[^#]%*[^\n]\n", (sm->svm_model)->kernel_parm.custom);
+  fscanf(modelfl,"%ld%*[^\n]\n", &(sm.svm_model)->kernel_parm.kernel_type);  
+  fscanf(modelfl,"%ld%*[^\n]\n", &(sm.svm_model)->kernel_parm.poly_degree);
+  fscanf(modelfl,"%lf%*[^\n]\n", &(sm.svm_model)->kernel_parm.rbf_gamma);
+  fscanf(modelfl,"%lf%*[^\n]\n", &(sm.svm_model)->kernel_parm.coef_lin);
+  fscanf(modelfl,"%lf%*[^\n]\n", &(sm.svm_model)->kernel_parm.coef_const);
+  fscanf(modelfl,"%[^#]%*[^\n]\n", (sm.svm_model)->kernel_parm.custom);
 
-  fscanf(modelfl,"%ld%*[^\n]\n", &(sm->svm_model)->totwords);
-  fscanf(modelfl,"%ld%*[^\n]\n", &(sm->svm_model)->totdoc);
-  fscanf(modelfl,"%ld%*[^\n]\n", &(sm->svm_model)->sv_num);
-  fscanf(modelfl,"%lf%*[^\n]\n", &(sm->svm_model)->b);
+  fscanf(modelfl,"%ld%*[^\n]\n", &(sm.svm_model)->totwords);
+  fscanf(modelfl,"%ld%*[^\n]\n", &(sm.svm_model)->totdoc);
+  fscanf(modelfl,"%ld%*[^\n]\n", &(sm.svm_model)->sv_num);
+  fscanf(modelfl,"%lf%*[^\n]\n", &(sm.svm_model)->b);
 
-  (sm->svm_model)->supvec = (DOC **)my_malloc(sizeof(DOC *)*(sm->svm_model)->sv_num);
-  (sm->svm_model)->alpha = (double *)my_malloc(sizeof(double)*(sm->svm_model)->sv_num);
-  (sm->svm_model)->index=NULL;
-  (sm->svm_model)->lin_weights=NULL;
+  (sm.svm_model)->supvec = (DOC **)my_malloc(sizeof(DOC *)*(sm.svm_model)->sv_num);
+  (sm.svm_model)->alpha = (double *)my_malloc(sizeof(double)*(sm.svm_model)->sv_num);
+  (sm.svm_model)->index=NULL;
+  (sm.svm_model)->lin_weights=NULL;
 
-  for(i=1;i<(sm->svm_model)->sv_num;i++) {
+  for(i=1;i<(sm.svm_model)->sv_num;i++) {
     fgets(line,(int)ll,modelfl);
-    if(!parse_document(line,words,&((sm->svm_model)->alpha[i]),&queryid,&slackid,
+    if(!parse_document(line,words,&((sm.svm_model)->alpha[i]),&queryid,&slackid,
            &costfactor,&wpos,max_words,&comment)) {
-      printf("\nParsing error while reading (sm->svm_model) file in SV %ld!\n%s",
+      printf("\nParsing error while reading (sm.svm_model) file in SV %ld!\n%s",
        i,line);
       exit(1);
     }
-    (sm->svm_model)->supvec[i] = create_example(-1,
+    (sm.svm_model)->supvec[i] = create_example(-1,
               0,0,
               0.0,
               create_svector(words,comment,1.0));
