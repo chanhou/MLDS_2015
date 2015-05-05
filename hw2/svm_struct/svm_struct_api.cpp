@@ -29,6 +29,8 @@
 #include <sstream>
 #include <map>
 
+#include <time.h>
+
 using namespace std;
 
 void split(const string& s, char c, vector<string>& v) {
@@ -364,7 +366,7 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
      empty_label(y). */
   LABEL ybar;
 
-  cout<<" large margin rescaling QQ "<<endl;
+  // cout<<" large margin rescaling QQ "<<endl;
   // cout<<"size of x: "<<x.x_part.size()<<endl;
   // cout<<"size of x: "<<x.x_part[0].size()<<endl;
   // cout<<"size of y: "<<y.y_part.size()<<endl;
@@ -388,7 +390,9 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
   // will be same as what viterbi calculate
 
   int totTimeFrame = x.x_part.size(); // 474 for first speaker
-  
+
+  // cout<<"00"<<totTimeFrame<<endl;
+
   vector< vector < double > >  delta;
   delta.resize(totTimeFrame);
   for( int t=0; t<totTimeFrame; t++)
@@ -399,50 +403,99 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
   for( int t=0; t<totTimeFrame; t++)
     traceY[t].resize(48);
 
+  // cout<<"11"<<endl;
+
   // init
   for( int s=0; s<48; s++) {
-  // prod : w_sate * x_timeFrame
-  for(int f=0; f<69; f++)
-        delta[0][s] += (sm->w[1+0+s*69+f]) * x.x_part[0][s+f];
+    // prod : w_sate * x_timeFrame
+    for(int f=0; f<69; f++){
+      // w index start from 0 
+      // but feature num start from 1
+      // y label also start from 1
+      delta[0][s] += ( sm->w [ s*69 + f ]) * x.x_part[0][ f ] ;
+    }
   }
 
+  // cout<<"22"<<endl;
+
   // recur 
+  double temppp = 0;
   for( int t=1; t< totTimeFrame; t++) {
-    // find max
-  for( int s=0; s<48; s++) {
-        double max_value = 0;
-    int max_candi = 0;
-    for( int m=0; m< 48; m++) {
-      if( delta[t-1][m]*(sm->w[48*69+((m-1)*69+s)]) > max_value ) {
-        max_value = delta[t-1][m]*(sm->w[48*69+(m-1)*69+s]);
-        max_candi = m;
+    for( int s=0; s<48; s++) { // i
+      double max_value = 0;
+      int max_candi = 0;
+      // find max
+      for( int m=0; m < 48; m++) { // j
+        // if( delta[t-1][m] * (sm->w [ 48*69 + ( (m-1)*69+s )] ) > max_value ) {
+        temppp = delta[t-1][m] * ( sm->w [ 48*69 + ( m*48 + s )] );
+
+        if( temppp  > max_value ) {
+          // cout<<"++++++++++++++++++++++++++"<<endl;
+          max_value = temppp;
+          max_candi = m;
+        }
       }
+      traceY[t-1][s] = max_candi; // y label start from 1, the best for previous timeframe
+      // prod : max * w_state * x_timeFrame
+      for(int f=0; f<69; f++) // timeframe
+        delta[t][s] += max_value * (sm->w[ s*69 + f ]) * x.x_part[t][ f ];
     }
-    traceY[t][s] = max_candi;
-    // prod : max * w_state * x_timeFrame
-    for(int f=0; f<69; f++)
-      delta[t][s] += max_value * (sm->w[1+0+s*69+f]) * x.x_part[t][s*69+f];
-  }
   }
   
+  // cout<<"33"<<endl;
+
   // terminate
   double max_all = 0;
   int max_candi = 0;
-  for( int m=0; m<48; m++)
-  if( delta[totTimeFrame-1][m] > max_all) {
-    max_all = delta[totTimeFrame-1][m];
-    max_candi = m;
+  for( int m=0; m<48; m++){
+    if( delta[totTimeFrame-1][m] > max_all) {
+      max_all = delta[totTimeFrame-1][m];
+      max_candi = m;
+    }
   }
   
+  // cout<<"44"<<endl;
+
+  // srand (time(NULL));
+
   // goBack
-  ybar.y_part.insert(ybar.y_part.begin(), max_candi);
-  int back = max_candi;
+  // if( max_candi != 0 ) 
+    ybar.y_part.insert(ybar.y_part.begin(), max_candi + 1 );
+  // else
+  //   ybar.y_part.insert(ybar.y_part.begin(), rand() % 48 + 1 );  
+  int back = max_candi ;
   int t = totTimeFrame - 1;
   while( t > 0 ) {
-  ybar.y_part.insert(ybar.y_part.begin(), traceY[t][back]);
-  back = traceY[t][back];
-  --t;
+    // if( traceY[t][back] != 0 ) 
+      ybar.y_part.insert(ybar.y_part.begin(), traceY[t][back] + 1 );
+    // else 
+    //   ybar.y_part.insert(ybar.y_part.begin(), rand() % 48 + 1 );
+    back = traceY[t][back];
+    --t;
   }
+
+
+
+  cout<<"viterbi done"<<endl;
+
+  for(auto & actual :y.y_part ){
+    cout<<actual<<",";
+  }
+  cout<<endl;
+  for(auto & pred :ybar.y_part ){
+    cout<<pred<<",";
+  }
+  cout<<endl;
+
+  // cout<<"test: "<<sprod_ns(sm->w, psi(x, y, sm, sparm))<<endl;
+  // cout<<"test: "<<sprod_ns(sm->w, psi(x, ybar, sm, sparm))<<endl;
+
+  cout<<"size of y: "<<y.y_part.size()<<endl;
+  cout<<"size of ybar: "<<ybar.y_part.size()<<endl;
+
+  double loss_cal = loss( y, ybar , sparm );
+  cout<<"loss::"<<loss_cal<<endl;
+
 
 
 
@@ -456,7 +509,16 @@ int         empty_label(LABEL y)
      returned by find_most_violated_constraint_???(x, y, sm) if there
      is no incorrect label that can be found for x, or if it is unable
      to label x at all */
-  return(0);
+  int count=0;
+  for(auto &yy :y.y_part){
+    if(yy == 0) count++;
+  }
+
+  if (count == y.y_part.size()) return (0);
+  else return (1);
+
+
+  // return(0);
 }
 
 SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
@@ -592,7 +654,7 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
 double      loss(LABEL y, LABEL ybar, STRUCT_LEARN_PARM *sparm)
 {
 
-  cout<<" loss start "<<endl;
+  // cout<<" loss start "<<endl;
   /* loss for correct label y and predicted label ybar. The loss for
      y==ybar has to be zero. sparm->loss_function is set with the -l option. */
   if(sparm->loss_function == 0) { /* type 0 loss: 0/1 loss */
@@ -601,7 +663,7 @@ double      loss(LABEL y, LABEL ybar, STRUCT_LEARN_PARM *sparm)
     // if y size and ybar size different? 
     // how to calculate ?
     // if i pass the same size of ybar then no need t oconsider this question
-    double error = 0;
+    double error = 0.;
     for(int i=0;i< y.y_part.size() ; ++i){
       if ( y.y_part[i] != ybar.y_part[i] ){
         error ++;
@@ -609,8 +671,8 @@ double      loss(LABEL y, LABEL ybar, STRUCT_LEARN_PARM *sparm)
       }
     }
     // return 0;
-    cout<<" loss finished "<<endl;
-    return (double) error/y.y_part.size();
+    // cout<<" loss finished "<<error<<","<<y.y_part.size()<<endl;
+    return (double) error/(double)y.y_part.size();
   }
   else {
     /* Put your code for different loss functions here. But then
