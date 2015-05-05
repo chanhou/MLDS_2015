@@ -9,8 +9,8 @@ LD = g++
 
 CPPFLAGS = -O2 -std=c++11 -Wall
 
-CFLAGS =   $(SFLAGS) -O3 -fomit-frame-pointer -ffast-math -Wall -std=c++11
-LDFLAGS =  $(SFLAGS) -O3 -Wall
+CFLAGS =   $(SFLAGS) -O3 -fomit-frame-pointer -ffast-math -Wall -std=c++11 -fopenmp
+LDFLAGS =  $(SFLAGS) -O3 -Wall -fopenmp
 #CFLAGS =  $(SFLAGS) -pg -Wall
 #LDFLAGS = $(SFLAGS) -pg -lm -Wall 
 

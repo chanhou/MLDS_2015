@@ -30,6 +30,7 @@
 #include <map>
 #include <math.h>
 
+#include <omp.h>
 #include <time.h>
 
 using namespace std;
@@ -303,6 +304,77 @@ LABEL       classify_struct_example(PATTERN x, STRUCTMODEL *sm,
 
   /* insert your code for computing the predicted label y here */
 
+  int totTimeFrame = x.x_part.size(); // 474 for first speaker
+
+  vector< vector < double > >  delta( totTimeFrame, vector < double > ( 48 ,0.0) );
+
+  vector< vector < int > > traceY( totTimeFrame, vector < int > ( 48 ,-1) );
+
+  // init
+  for( int s=0; s<48; s++) {
+    // prod : w_sate * x_timeFrame
+    for(int f=0; f<69; f++){
+      // w index start from 0 
+      // but feature num start from 1
+      // y label also start from 1
+      delta[0][s] += ( sm->w [ s*69 + f ]) * x.x_part[0][ f ] ;
+    }
+    // delta[0][s] = exp(delta[0][s]);
+  }
+
+  // // recur 
+  double temppp = 0;
+  for( int t=1; t< totTimeFrame; t++) {
+    for( int s=0; s<48; s++) { // i
+      double max_value = -INFINITY;
+      int max_candi = 0;
+      // find max
+      for( int m=0; m < 48; m++) { // j
+        // if( delta[t-1][m] * (sm->w [ 48*69 + ( (m-1)*69+s )] ) > max_value ) {
+        // temppp = delta[t-1][m] * exp( sm->w [ 48*69 + ( m*48 + s )] );
+        temppp = delta[t-1][m] * ( sm->w [ 48*69 + ( m*48 + s )] );
+
+        if( temppp  > max_value ) {
+          // cout<<"++++++++++++++++++++++++++"<<endl;
+          max_value = temppp;
+          max_candi = m;
+        }
+      }
+      traceY[ t ][ s ] = max_candi; // y label start from 1, the best for previous timeframe
+      // prod : max * w_state * x_timeFrame
+      for(int f=0; f<69; f++){ // timeframe
+        delta[t][s] +=  (sm->w[ s*69 + f ]) * x.x_part[t][ f ]; // calculate prob(i|x_t)
+      }
+      // delta[t][s] = max_value * exp(delta[t][s]);
+      delta[t][s] *= max_value;
+    }
+  }
+  
+  // // cout<<"33"<<endl;
+
+  // // terminate
+  double max_all = -INFINITY;
+  int max_candi = 0;
+  for( int m=0; m<48; m++){
+    if( delta[totTimeFrame-1][m] > max_all) {
+      max_all = delta[totTimeFrame-1][m];
+      max_candi = m;
+    }
+  }
+  
+  // // cout<<"44"<<endl;
+
+  // goBack
+  y.y_part.insert(y.y_part.begin(), max_candi + 1 );
+  int back = max_candi ;
+  int t = totTimeFrame - 1; 
+  while( t > 0 ) {
+    y.y_part.insert(y.y_part.begin(), traceY[t][back] + 1 );
+    back = traceY[t][back];
+    --t;
+  }
+
+
 
 
   return(y);
@@ -407,6 +479,7 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
   // cout<<"11"<<endl;
 
   // init
+  // #pragma omp parallel for
   for( int s=0; s<48; s++) {
     // prod : w_sate * x_timeFrame
     for(int f=0; f<69; f++){
@@ -422,6 +495,7 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
 
   // // recur 
   double temppp = 0;
+  // #pragma omp parallel for
   for( int t=1; t< totTimeFrame; t++) {
     for( int s=0; s<48; s++) { // i
       double max_value = -INFINITY;
@@ -429,8 +503,8 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
       // find max
       for( int m=0; m < 48; m++) { // j
         // if( delta[t-1][m] * (sm->w [ 48*69 + ( (m-1)*69+s )] ) > max_value ) {
-        // temppp = delta[t-1][m] * exp( sm->w [ 48*69 + ( m*48 + s )] );
         temppp = delta[t-1][m] * ( sm->w [ 48*69 + ( m*48 + s )] );
+        // temppp = delta[t-1][m] * exp( sm->w [ 48*69 + ( m*48 + s )] );
 
         if( temppp  > max_value ) {
           // cout<<"++++++++++++++++++++++++++"<<endl;
@@ -462,20 +536,12 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
   
   // // cout<<"44"<<endl;
 
-  // srand (time(NULL));
-
   // goBack
-  // if( max_candi != 0 ) 
     ybar.y_part.insert(ybar.y_part.begin(), max_candi + 1 );
-  // else
-  //   ybar.y_part.insert(ybar.y_part.begin(), rand() % 48 + 1 );  
   int back = max_candi ;
   int t = totTimeFrame - 1; 
   while( t > 0 ) {
-    // if( traceY[t][back] != 0 ) 
       ybar.y_part.insert(ybar.y_part.begin(), traceY[t][back] + 1 );
-    // else 
-    //   ybar.y_part.insert(ybar.y_part.begin(), rand() % 48 + 1 );
     back = traceY[t][back];
     --t;
   }
