@@ -514,18 +514,37 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
 
   // recur 
   double temppp = 0;
-  #pragma omp parallel for 
+  LABEL y_temp;
+  // #pragma omp parallel for 
   for( int t=1; t< totTimeFrame; t++) {
 
     for( int s=0; s<48; s++) { // i
       double max_value = -INFINITY;
       int max_candi = 0;
+      // cout<<"check: "<<y_temp.y_part.size()<<endl;
       // find max
       for( int m=0; m < 48; m++) { // j
         // if( delta[t-1][m] * (sm->w [ 48*69 + ( (m-1)*69+s )] ) > max_value ) {
         // if( !(isnan( sm->w [ 48*69 + ( m*48 + s )])))
-          // temppp = delta[t-1][m] * ( sm->w [ 48*69 + ( m*48 + s )] ); // p(i|j)
-          temppp = delta[t-1][m] + ( sm->w [ 48*69 + ( m*48 + s )] ); // p(i|j)
+        // temppp = delta[t-1][m] * ( sm->w [ 48*69 + ( m*48 + s )] ); // p(i|j)
+
+          // see the previous time frame label seq
+          // m is the previous time frame label that we seek to max
+          y_temp.y_part.clear();
+          y_temp.y_part.insert(y_temp.y_part.begin(), m + 1 ); 
+
+          // then we back trace from m
+          int back = m ;
+          int time_temp = t - 1; 
+          while( time_temp > 0 ) {
+            y_temp.y_part.insert(y_temp.y_part.begin(), traceY[time_temp][back] + 1 );
+            back = traceY[time_temp][back];
+            --time_temp;
+          }
+          temppp = loss( y, y_temp , sparm ) + delta[t-1][m] + ( sm->w [ 48*69 + ( m*48 + s )] ); // p(i|j)
+
+          // temppp = delta[t-1][m] + ( sm->w [ 48*69 + ( m*48 + s )] ); // p(i|j)
+
         // else 
         //   temppp = delta[t-1][m] * ( 0 ); // p(i|j)
         // temppp = delta[t-1][m] * exp( sm->w [ 48*69 + ( m*48 + s )] );
@@ -535,13 +554,29 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
           if( temppp  > max_value ) {
             // if(t==42)
             // cout<<"++++++++++++++++++++++++++"<<endl;
+            // cout<<y_temp.y_part.size()<<",";
+            // cout<<"loss: "<<loss( y, y_temp , sparm )<<endl;
+            // cout<<"y: "<<endl;
+            // for(int rrr=0;rrr< y_temp.y_part.size(); ++rrr){
+            //   cout<<y.y_part[rrr]<<",";
+            // }
+            // cout<<endl<<"y_temp: "<<endl;
+            // for(int rrr=0;rrr< y_temp.y_part.size(); ++rrr){
+            //   cout<<y_temp.y_part[rrr]<<",";
+            // }
+            // cout<<endl;
+            // cout<<m<<endl;
+
             max_value = temppp;
             max_candi = m;
+
           }
       }
 
+
       // if (isinf(temppp)) break;
 
+      // cout<<"++++++++++++++++++++++++++"<<endl;
       // cout<<"done, previous, time frame "<<t<<endl;
       // cout<<"max candi:"<<max_candi<<", value "<<max_value<<endl;
       traceY[ t ][ s ] = max_candi; // y label start from 1, the best for previous timeframe
@@ -558,6 +593,7 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
       // cout<<delta[t][s]<<endl;
     }
     // if (isinf(temppp)) break;
+    // if(t==2) break;
   }
   
   // // // cout<<"33"<<endl;
@@ -586,7 +622,7 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
 
 
 
-  // cout<<"viterbi done"<<endl;
+  // cout<<endl<<"viterbi done"<<endl;
 
   // for(auto & actual :y.y_part ){
   //   cout<<actual<<",";
@@ -604,11 +640,14 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
   // cout<<"size of ybar: "<<ybar.y_part.size()<<endl;
 
   // double loss_cal = loss( y, ybar , sparm );
+  // cout<<"test --: "<<loss_cal + sprod_ns(sm->w, psi(x, ybar, sm, sparm) )<<endl;
+  // cout<<"test 11: "<< max_all << endl;
+
   // cout<<"loss::"<<loss_cal<<endl;
 
   // LABEL tt;
   // return tt;
-  return(ybar);
+  return (ybar);
 }
 
 int         empty_label(LABEL y)
@@ -734,7 +773,7 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
   // then we need to initialize a 48*48 matrix
   for(int trans = 0; trans< (48*48); ++trans){
     if(trans != (48*48-1) ){
-      my_word[ count_sparse*69 + trans ].wnum = sm->sizePsi; // sm->sizePsi
+      my_word[ count_sparse*69 + trans ].wnum = 49; // sm->sizePsi
     }
     else{ // last element
       // psi format
@@ -777,15 +816,15 @@ double      loss(LABEL y, LABEL ybar, STRUCT_LEARN_PARM *sparm)
     // how to calculate ?
     // if i pass the same size of ybar then no need t oconsider this question
     double error = 0.;
-    for(int i=0;i< y.y_part.size() ; ++i){
+    for(int i=0;i< ybar.y_part.size() ; ++i){
       if ( y.y_part[i] != ybar.y_part[i] ){
         error ++;
-        // return 1;
       }
     }
     // return 0;
     // cout<<" loss finished "<<error<<","<<y.y_part.size()<<endl;
-    return (double) error/(double)y.y_part.size();
+    // return (double) error/(double)y.y_part.size();
+    return error;
   }
   else {
     /* Put your code for different loss functions here. But then
