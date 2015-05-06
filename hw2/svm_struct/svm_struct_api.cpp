@@ -102,6 +102,7 @@ SAMPLE read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
   long     n;       /* number of examples */
 
   n= 3695; /* replace by appropriate number of examples */
+  // n = 591; // for test file speaker
   examples=(EXAMPLE *)my_malloc(sizeof(EXAMPLE)*n);
 
   /* fill in your code here */
@@ -513,7 +514,7 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
 
   // recur 
   double temppp = 0;
-  // #pragma omp parallel for
+  #pragma omp parallel for 
   for( int t=1; t< totTimeFrame; t++) {
 
     for( int s=0; s<48; s++) { // i
