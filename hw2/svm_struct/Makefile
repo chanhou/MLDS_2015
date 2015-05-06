@@ -63,10 +63,11 @@ test: test.cpp
 	g++ $(CPPFLAGS) $^ -o $@
 
 run_train:
-	./svm_empty_learn -c 1 -w 3 -v 2 -a ./result/check_pre_label.dat ../../hw1/MLDS_HW1_RELEASE_v1/fbank/train.ark ./result/model.dat
+	# ./svm_empty_learn -c 1 -w 2 -v 2 -a ./result/check_pre_label.dat ../../hw1/MLDS_HW1_RELEASE_v1/fbank/train.ark ./result/model.dat
+	./svm_empty_learn -c 1 -w 2 -v 2 -a ./result/check_pre_label.dat ../hwb_normalize.dat ./result/model.dat
 	# ./svm_empty_learn -c 1 -w 2  ../hwb_normalize.dat
 
 run_test:
-	cp model.dat model_copy.dat
+	cp ./result/model.dat ./result/model_copy.dat
 	./svm_empty_classify -v 2 ../../hw1/MLDS_HW1_RELEASE_v1/fbank/test.ark ./result/model.dat ./result/result.csv
 

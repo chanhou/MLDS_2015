@@ -515,33 +515,62 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
   // recur 
   double temppp = 0;
   LABEL y_temp;
-  // #pragma omp parallel for 
+  #pragma omp parallel for 
   for( int t=1; t< totTimeFrame; t++) {
+    // cout<<"kkk"<<endl;
+    // for adding last frame loss inside delta_{t-1} 
+    // then when we go further, and backtrace the previous state
+    // we implicitly done inside in delta_{t-1}
+    for(int loss_state=0; loss_state<48; ++loss_state ){
+      if (y.y_part[t-1] != (loss_state+1) ){
+        delta[t-1][loss_state] ++;
+      }
+    }
+
+    // cout<<"??"<<endl;
 
     for( int s=0; s<48; s++) { // i
       double max_value = -INFINITY;
       int max_candi = 0;
+      // double temppp = 0;
       // cout<<"check: "<<y_temp.y_part.size()<<endl;
+      // cout<<"www"<<endl;
+
+      // if(y.y_part[t] != s ) temppp += 1; // consider current frame
+      
+      // cout<<"QQQ"<<endl;
       // find max
       for( int m=0; m < 48; m++) { // j
         // if( delta[t-1][m] * (sm->w [ 48*69 + ( (m-1)*69+s )] ) > max_value ) {
         // if( !(isnan( sm->w [ 48*69 + ( m*48 + s )])))
         // temppp = delta[t-1][m] * ( sm->w [ 48*69 + ( m*48 + s )] ); // p(i|j)
 
-          // see the previous time frame label seq
-          // m is the previous time frame label that we seek to max
-          y_temp.y_part.clear();
-          y_temp.y_part.insert(y_temp.y_part.begin(), m + 1 ); 
+          // // see the previous time frame label seq
+          // // m is the previous time frame label that we seek to max
+          // y_temp.y_part.clear();
+          // y_temp.y_part.insert(y_temp.y_part.begin(), m + 1 ); 
 
-          // then we back trace from m
-          int back = m ;
-          int time_temp = t - 1; 
-          while( time_temp > 0 ) {
-            y_temp.y_part.insert(y_temp.y_part.begin(), traceY[time_temp][back] + 1 );
-            back = traceY[time_temp][back];
-            --time_temp;
+          // // then we back trace from m
+          // int back = m ;
+          // int time_temp = t - 1; 
+          // while( time_temp > 0 ) {
+          //   y_temp.y_part.insert(y_temp.y_part.begin(), traceY[time_temp][back] + 1 );
+          //   back = traceY[time_temp][back];
+          //   --time_temp;
+          // }
+          // temppp = loss( y, y_temp , sparm ) + delta[t-1][m] + ( sm->w [ 48*69 + ( m*48 + s )] ); // p(i|j)
+
+          // if (y.y_part[t-1] != m )
+          //   delta[t-1][m] ++;
+
+          if( y.y_part[t] != (s+1) ){ 
+            temppp = 1 + delta[t-1][m] + ( sm->w [ 48*69 + ( m*48 + s )] ); // consider current frame loss
           }
-          temppp = loss( y, y_temp , sparm ) + delta[t-1][m] + ( sm->w [ 48*69 + ( m*48 + s )] ); // p(i|j)
+          else{
+            temppp = delta[t-1][m] + ( sm->w [ 48*69 + ( m*48 + s )] ); // p(i|j)
+          }
+          
+
 
           // temppp = delta[t-1][m] + ( sm->w [ 48*69 + ( m*48 + s )] ); // p(i|j)
 
@@ -572,6 +601,7 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
 
           }
       }
+      // cout<<"ddd"<<endl;
 
 
       // if (isinf(temppp)) break;
@@ -593,7 +623,7 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
       // cout<<delta[t][s]<<endl;
     }
     // if (isinf(temppp)) break;
-    // if(t==2) break;
+    // if(t==184) break;
   }
   
   // // // cout<<"33"<<endl;
