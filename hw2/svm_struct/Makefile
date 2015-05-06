@@ -67,5 +67,6 @@ run_train:
 	# ./svm_empty_learn -c 1 -w 2  ../hwb_normalize.dat
 
 run_test:
+	cp model.dat model_copy.dat
 	./svm_empty_classify -v 2 ../../hw1/MLDS_HW1_RELEASE_v1/fbank/test.ark ./result/model.dat ./result/result.csv
 
