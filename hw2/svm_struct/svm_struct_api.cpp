@@ -248,7 +248,7 @@ void        init_struct_model(SAMPLE sample, STRUCTMODEL *sm,
   // 48 phones + 1 transition
   cout<<"==== Now initialize the model part ===="<<endl;
   sm->sizePsi=49; /* replace by appropriate number of features */
-  cout<<"size of w: "<<sizeof(sm->w)<<endl;
+  // cout<<"size of w: "<<sizeof(sm->w)<<endl;
 }
 
 CONSTSET    init_struct_constraints(SAMPLE sample, STRUCTMODEL *sm, 
@@ -266,7 +266,7 @@ CONSTSET    init_struct_constraints(SAMPLE sample, STRUCTMODEL *sm,
   long     sizePsi=sm->sizePsi;
   long     i;
   WORD     words[2];
-  cout<<"size of w in init constraint: "<<sizeof(sm->w)<<endl;
+  // cout<<"size of w in init constraint: "<<sizeof(sm->w)<<endl;
   if(1) { /* normal case: start with empty set of constraints */
     c.lhs=NULL;
     c.rhs=NULL;
@@ -311,48 +311,46 @@ LABEL       classify_struct_example(PATTERN x, STRUCTMODEL *sm,
   vector< vector < int > > traceY( totTimeFrame, vector < int > ( 48 ,-1) );
 
   // init
+  // #pragma omp parallel for
   for( int s=0; s<48; s++) {
     // prod : w_sate * x_timeFrame
     for(int f=0; f<69; f++){
       // w index start from 0 
       // but feature num start from 1
       // y label also start from 1
-      delta[0][s] += ( sm->w [ s*69 + f ]) * x.x_part[0][ f ] ;
+        delta[0][s] += ( sm->w [ s*69 + f ]) * x.x_part[0][ f ] ;
     }
-    // delta[0][s] = exp(delta[0][s]);
   }
 
-  // // recur 
+  // recur 
   double temppp = 0;
+  // #pragma omp parallel for
   for( int t=1; t< totTimeFrame; t++) {
+
     for( int s=0; s<48; s++) { // i
       double max_value = -INFINITY;
       int max_candi = 0;
       // find max
       for( int m=0; m < 48; m++) { // j
-        // if( delta[t-1][m] * (sm->w [ 48*69 + ( (m-1)*69+s )] ) > max_value ) {
-        // temppp = delta[t-1][m] * exp( sm->w [ 48*69 + ( m*48 + s )] );
-        temppp = delta[t-1][m] * ( sm->w [ 48*69 + ( m*48 + s )] );
-
-        if( temppp  > max_value ) {
-          // cout<<"++++++++++++++++++++++++++"<<endl;
-          max_value = temppp;
-          max_candi = m;
-        }
+          temppp = delta[t-1][m] + ( sm->w [ 48*69 + ( m*48 + s )] ); // p(i|j)
+          if( temppp  > max_value ) {
+            max_value = temppp;
+            max_candi = m;
+          }
       }
+
       traceY[ t ][ s ] = max_candi; // y label start from 1, the best for previous timeframe
       // prod : max * w_state * x_timeFrame
       for(int f=0; f<69; f++){ // timeframe
-        delta[t][s] +=  (sm->w[ s*69 + f ]) * x.x_part[t][ f ]; // calculate prob(i|x_t)
+          delta[t][s] +=  (sm->w[ s*69 + f ]) * x.x_part[t][ f ]; // calculate prob(i|x_t)
       }
-      // delta[t][s] = max_value * exp(delta[t][s]);
-      delta[t][s] *= max_value;
+      delta[t][s] += max_value;
     }
   }
   
-  // // cout<<"33"<<endl;
+  // // // cout<<"33"<<endl;
 
-  // // terminate
+  // // // terminate
   double max_all = -INFINITY;
   int max_candi = 0;
   for( int m=0; m<48; m++){
@@ -361,19 +359,16 @@ LABEL       classify_struct_example(PATTERN x, STRUCTMODEL *sm,
       max_candi = m;
     }
   }
-  
-  // // cout<<"44"<<endl;
 
-  // goBack
+  // // goBack
   y.y_part.insert(y.y_part.begin(), max_candi + 1 );
   int back = max_candi ;
   int t = totTimeFrame - 1; 
   while( t > 0 ) {
-    y.y_part.insert(y.y_part.begin(), traceY[t][back] + 1 );
+      y.y_part.insert(y.y_part.begin(), traceY[t][back] + 1 );
     back = traceY[t][back];
     --t;
   }
-
 
 
 
@@ -486,45 +481,87 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
       // w index start from 0 
       // but feature num start from 1
       // y label also start from 1
-      delta[0][s] += ( sm->w [ s*69 + f ]) * x.x_part[0][ f ] ;
+      // if( !(isnan( sm->w [ s*69 + f ])))
+        delta[0][s] += ( sm->w [ s*69 + f ]) * x.x_part[0][ f ] ;
+      // else
+      //   delta[0][s] += 0.0 * x.x_part[0][ f ] ;
+      // if(s==38){
+      //   // cout<<"38"<<endl;
+      //   if( isnan( sm->w [ s*69 + f ])) cout<<"!!!!!!!!  ";
+      //   cout<< sm->w [ s*69 + f ] <<",";
+      //   cout<< x.x_part[0][ f ] <<",";
+      //   cout<< delta[0][s] << endl;  
+      // }
     }
     // delta[0][s] = exp(delta[0][s]);
+    // cout<<endl;
+    // cout<<delta[0][s]<<" "<<exp(delta[0][s])<<" "<<log(delta[0][s]);
+    // cout<<delta[0][s];
+    // cout<<delta.size()<<" "<<delta[0].size()<<endl;
   }
 
-  // // cout<<"22"<<endl;
+  // cout<<"\n22"<<endl;
 
-  // // recur 
+  // for(int s=0;s<48;++s){
+  //   for(int m=0; m<48;++m){
+  //     // if(isnan(sm->w [ 48*69 + ( m*48 + s )])) cout<<"WTF"<<",";
+  //     cout<< sm->w [ 48*69 + ( m*48 + s )]<<",";
+  //   }
+  // }
+
+
+
+  // recur 
   double temppp = 0;
   // #pragma omp parallel for
   for( int t=1; t< totTimeFrame; t++) {
+
     for( int s=0; s<48; s++) { // i
       double max_value = -INFINITY;
       int max_candi = 0;
       // find max
       for( int m=0; m < 48; m++) { // j
         // if( delta[t-1][m] * (sm->w [ 48*69 + ( (m-1)*69+s )] ) > max_value ) {
-        temppp = delta[t-1][m] * ( sm->w [ 48*69 + ( m*48 + s )] );
+        // if( !(isnan( sm->w [ 48*69 + ( m*48 + s )])))
+          // temppp = delta[t-1][m] * ( sm->w [ 48*69 + ( m*48 + s )] ); // p(i|j)
+          temppp = delta[t-1][m] + ( sm->w [ 48*69 + ( m*48 + s )] ); // p(i|j)
+        // else 
+        //   temppp = delta[t-1][m] * ( 0 ); // p(i|j)
         // temppp = delta[t-1][m] * exp( sm->w [ 48*69 + ( m*48 + s )] );
-
-        if( temppp  > max_value ) {
-          // cout<<"++++++++++++++++++++++++++"<<endl;
-          max_value = temppp;
-          max_candi = m;
-        }
+        // if (isinf(temppp)) break;
+        // if(t==42)
+          // cout<<"time frame "<<t<<" "<<" "<<s<<" "<<m<<" "<<delta[t-1][m]<<" "<< sm->w [ 48*69 + ( m*48 + s )] <<" "<<temppp<<endl;
+          if( temppp  > max_value ) {
+            // if(t==42)
+            // cout<<"++++++++++++++++++++++++++"<<endl;
+            max_value = temppp;
+            max_candi = m;
+          }
       }
+
+      // if (isinf(temppp)) break;
+
+      // cout<<"done, previous, time frame "<<t<<endl;
+      // cout<<"max candi:"<<max_candi<<", value "<<max_value<<endl;
       traceY[ t ][ s ] = max_candi; // y label start from 1, the best for previous timeframe
       // prod : max * w_state * x_timeFrame
       for(int f=0; f<69; f++){ // timeframe
-        delta[t][s] +=  (sm->w[ s*69 + f ]) * x.x_part[t][ f ]; // calculate prob(i|x_t)
+        // if( !(isnan( sm->w[ s*69 + f ])))
+          delta[t][s] +=  (sm->w[ s*69 + f ]) * x.x_part[t][ f ]; // calculate prob(i|x_t)
+      //   else
+      //     delta[t][s] +=  0.0 * x.x_part[t][ f ]; // calculate prob(i|x_t)
       }
       // delta[t][s] = max_value * exp(delta[t][s]);
-      delta[t][s] *= max_value;
+      // cout<<delta[t][s]<<",";
+      delta[t][s] += max_value;
+      // cout<<delta[t][s]<<endl;
     }
+    // if (isinf(temppp)) break;
   }
   
-  // // cout<<"33"<<endl;
+  // // // cout<<"33"<<endl;
 
-  // // terminate
+  // // // terminate
   double max_all = -INFINITY;
   int max_candi = 0;
   for( int m=0; m<48; m++){
@@ -534,10 +571,10 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
     }
   }
   
-  // // cout<<"44"<<endl;
+  // // // cout<<"44"<<endl;
 
-  // goBack
-    ybar.y_part.insert(ybar.y_part.begin(), max_candi + 1 );
+  // // goBack
+  ybar.y_part.insert(ybar.y_part.begin(), max_candi + 1 );
   int back = max_candi ;
   int t = totTimeFrame - 1; 
   while( t > 0 ) {
@@ -569,7 +606,7 @@ LABEL       find_most_violated_constraint_marginrescaling(PATTERN x, LABEL y,
   // cout<<"loss::"<<loss_cal<<endl;
 
   // LABEL tt;
-
+  // return tt;
   return(ybar);
 }
 
