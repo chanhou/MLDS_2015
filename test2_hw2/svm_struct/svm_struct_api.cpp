@@ -689,7 +689,7 @@ int         empty_label(LABEL y)
      to label x at all */
   int count=0;
   for(auto &yy :y.y_part){
-    if(yy == 0) count++;
+    if(yy != 0) count++;
   }
   // for(auto & actual :y.y_part ){
   //   cout<<actual<<",";
