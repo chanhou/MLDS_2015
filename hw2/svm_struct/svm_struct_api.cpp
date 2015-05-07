@@ -686,21 +686,22 @@ int         empty_label(LABEL y)
      returned by find_most_violated_constraint_???(x, y, sm) if there
      is no incorrect label that can be found for x, or if it is unable
      to label x at all */
-  // int count=0;
-  // for(auto &yy :y.y_part){
-  //   if(yy == 0) count++;
-  // }
+  int count=0;
+  for(auto &yy :y.y_part){
+    if(yy != 0) count++;
+  }
   // for(auto & actual :y.y_part ){
   //   cout<<actual<<",";
   // }
+  // cout<<endl;
 
   // cout<<"why:"<<count<<endl;
 
-  // if (count == y.y_part.size()) return (0);
-  // else return (1);
+  if (count == y.y_part.size()) return (0);
+  else return (1);
 
 
-  return(0);
+  // return(0);
 }
 
 SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
@@ -828,6 +829,7 @@ SVECTOR     *psi(PATTERN x, LABEL y, STRUCTMODEL *sm,
 
   fvec = create_svector(my_word, NULL, 1); // userdefined set as false, factor set as 1, don't know set what
 
+  free(my_word);
   // cout<<" psi transformation finished "<<endl;
 
   return(fvec);
@@ -875,7 +877,12 @@ int         finalize_iteration(double ceps, int cached_constraint,
 			       CONSTSET cset, double *alpha, 
 			       STRUCT_LEARN_PARM *sparm)
 {
-  /* This function is called just before the end of each cutting plane iteration. ceps is the amount by which the most violated constraint found in the current iteration was violated. cached_constraint is true if the added constraint was constructed from the cache. If the return value is FALSE, then the algorithm is allowed to terminate. If it is TRUE, the algorithm will keep iterating even if the desired precision sparm->epsilon is already reached. */
+  /* This function is called just before the end of each cutting plane iteration. 
+  ceps is the amount by which the most violated constraint found in the current iteration 
+  was violated. cached_constraint is true if the added constraint was constructed from the cache. 
+  If the return value is FALSE, then the algorithm is allowed to terminate. 
+  If it is TRUE, the algorithm will keep iterating even if the desired precision sparm->epsilon is 
+  already reached. */
   return(0);
 }
 
@@ -1122,10 +1129,18 @@ void        write_label(FILE *fp, LABEL y)
 
 void        free_pattern(PATTERN x) {
   /* Frees the memory of x. */
+  for( int i=0; i<x.x_part.size(); i++){
+    x.x_part[i].clear();
+    vector<double>(x.x_part[i]).swap(x.x_part[i]);
+  }
+  x.x_part.clear();
+  vector< vector< double> >(x.x_part).swap(x.x_part);
 }
 
 void        free_label(LABEL y) {
   /* Frees the memory of y. */
+  y.y_part.clear();
+  vector<int>(y.y_part).swap(y.y_part);
 }
 
 void        free_struct_model(STRUCTMODEL sm) 
