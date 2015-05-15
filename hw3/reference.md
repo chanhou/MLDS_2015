@@ -16,3 +16,7 @@ http://arxiv.org/pdf/1211.5590v1.pdf
 # Great result: 
 Learning word embeddings efficiently with noise-contrastive estimation
 http://papers.nips.cc/paper/5165-learning-word-embeddings-efficiently-with-noise-contrastive-estimation.pdf
+
+# RnnLM thesis:
+http://www.fit.vutbr.cz/~imikolov/rnnlm/thesis.pdf
+
