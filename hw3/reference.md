@@ -13,3 +13,6 @@ http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=6889433
 # Theano: new features and speed improvements
 http://arxiv.org/pdf/1211.5590v1.pdf
 
+# Great result: 
+Learning word embeddings efficiently with noise-contrastive estimation
+http://papers.nips.cc/paper/5165-learning-word-embeddings-efficiently-with-noise-contrastive-estimation.pdf
